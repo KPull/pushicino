@@ -68,3 +68,38 @@ pub enum Error {
     InvalidHttpHeader(reqwest::header::InvalidHeaderValue),
     HttpRequestFailed(reqwest::Error),
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::subscription::{AuthenticationSecret, SubscriptionRequest, SubscriptionSecrets};
+    use crate::vapid::Vapid;
+    use crate::{subscription, vapid, PushService};
+    use base64::prelude::BASE64_URL_SAFE_NO_PAD;
+    use base64::Engine;
+    use ecdsa::SigningKey;
+    use elliptic_curve::pkcs8::DecodePrivateKey;
+    use elliptic_curve::PublicKey;
+    use std::fs::read_to_string;
+    use url::Url;
+
+    #[tokio::test]
+    async fn test_send() {
+        let service = PushService::with_vapid(Vapid::new(
+            SigningKey::from_pkcs8_pem(&read_to_string("vapid_test_2.pem").unwrap()).unwrap(),
+            vapid::ServerIdentification::with_audience(
+                url::Url::parse("https://example.com").unwrap(),
+            ),
+        ));
+        let subscription = SubscriptionRequest::new(
+            Url::parse("https://www.postb.in/1780346657084-9427918170113").unwrap(),
+            SubscriptionSecrets::new(
+                PublicKey::from_sec1_bytes(&BASE64_URL_SAFE_NO_PAD.decode("BP4z9KsN6nGRTbVYI_c7VJSPQTBtkgcy27mlmlMoZIIgDll6e3vCYLocInmYWAmS6TlzAC8wEqKK6PBru3jl7A8").unwrap()).unwrap(),
+                AuthenticationSecret(BASE64_URL_SAFE_NO_PAD.decode("BTBZMqHH6r4Tts7J_aSIgg").unwrap()
+                    .try_into().unwrap()),
+            ),
+            vec![subscription::Encoding::Aes128gcm],
+        );
+        let subscription = subscription.to_subscription();
+        service.send(&subscription, String::from("Hello, world!").as_bytes()).await.unwrap();
+    }
+}
