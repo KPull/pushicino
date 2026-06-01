@@ -45,7 +45,7 @@ impl PushService {
             .prepare_request(&client, content)
             .map_err(|e| Error::FailedToPrepareRequest(e))?;
 
-        let header = self.vapid.generate_authorization_header()?;
+        let header = self.vapid.authorization_header()?;
         let mut headers = HeaderMap::new();
         headers.append("Authorization", header.into());
         let request = request.headers(headers);
@@ -60,6 +60,7 @@ impl PushService {
 #[derive(Debug)]
 pub enum Error {
     InvalidExpiryTime,
+    FailedToLockTokenCache,
     FailedToPrepareRequest(subscription::Error),
     FailedToWritePem(p256::pkcs8::Error),
     InvalidEncodingKey(jsonwebtoken::errors::Error),
