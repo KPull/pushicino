@@ -1182,6 +1182,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "pushicino"
+version = "0.1.0"
+dependencies = [
+ "aes-gcm",
+ "base64",
+ "ecdsa",
+ "elliptic-curve",
+ "hkdf",
+ "jsonwebtoken",
+ "log",
+ "p256",
+ "reqwest",
+ "serde",
+ "sha2",
+ "tokio",
+ "url",
+]
+
+[[package]]
 name = "quinn"
 version = "0.11.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2096,25 +2115,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c4e0100b01e9f0d03189a92b96772a1fb998639d981193d7dbab487302513441"
 dependencies = [
  "unicode-ident",
-]
-
-[[package]]
-name = "web-push"
-version = "0.1.0"
-dependencies = [
- "aes-gcm",
- "base64",
- "ecdsa",
- "elliptic-curve",
- "hkdf",
- "jsonwebtoken",
- "log",
- "p256",
- "reqwest",
- "serde",
- "sha2",
- "tokio",
- "url",
 ]
 
 [[package]]
