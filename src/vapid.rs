@@ -10,7 +10,7 @@ use url::Url;
 
 /// This is information used for the creation of VAPID authentication tokens within push messages.
 /// A Vapid object is created and provided to a Push Service.
-pub(crate) struct Vapid {
+pub struct Vapid {
     private_key: p256::ecdsa::SigningKey,
     identification: ServerIdentification,
 
