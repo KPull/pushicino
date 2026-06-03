@@ -54,7 +54,7 @@ impl Vapid {
         let mut lock = self
             .cached_token
             .lock()
-            .map_err(|e| Error::FailedToLockTokenCache)?;
+            .map_err(|_| Error::FailedToLockTokenCache)?;
 
         match lock.as_mut() {
             None => {

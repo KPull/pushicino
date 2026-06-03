@@ -1,8 +1,6 @@
 use aes_gcm::aead::rand_core::RngCore;
-use aes_gcm::aead::{AeadMut, Buffer, Nonce, OsRng};
+use aes_gcm::aead::{AeadMut, Nonce, OsRng};
 use aes_gcm::{Aes128Gcm, Key, KeyInit};
-use base64::prelude::BASE64_URL_SAFE_NO_PAD;
-use base64::Engine;
 use hkdf::{Hkdf, InvalidLength};
 use sha2::Sha256;
 
@@ -17,7 +15,7 @@ pub(crate) fn encode(key: &impl EncodingKey, message: &[u8]) -> Result<Encrypted
 
     const RS: u32 = 4096u32;
     let salt = Salt::random();
-    let (keyid, ikm) = key.ikm().map_err(|e| Error::FailedToGenerateIkm)?;
+    let (keyid, ikm) = key.ikm().map_err(|_| Error::FailedToGenerateIkm)?;
     let idlen = keyid.0.len() as u8;
 
     let hkdf = Hkdf::<Sha256>::new(Some(&salt.0), &ikm.0);
@@ -154,6 +152,8 @@ impl Salt {
 #[cfg(test)]
 impl Salt {
     fn random() -> Self {
+        use base64::prelude::*;
+
         let salt: [u8; 16] = BASE64_URL_SAFE_NO_PAD
             .decode("DGv6ra1nlYgDCS1FRnbzlw")
             .unwrap()
@@ -164,7 +164,7 @@ impl Salt {
 }
 
 #[derive(Debug)]
-pub(crate) enum Error {
+pub enum Error {
     MessageTooLong,
     FailedToGenerateIkm,
     InvalidCekLength(InvalidLength),
@@ -211,8 +211,11 @@ mod tests {
         let result = encode(&TestKey, b"When I grow up, I want to be a watermelon");
         let payload = result.unwrap();
         let encoded_payload = BASE64_URL_SAFE_NO_PAD.encode::<Vec<u8>>((&payload).into());
-        assert_eq!(encoded_payload, "DGv6ra1nlYgDCS1FRnbzlwAAEABBBP4z9KsN6nGRTbVYI_c7VJSPQTBtkgcy\
+        assert_eq!(
+            encoded_payload,
+            "DGv6ra1nlYgDCS1FRnbzlwAAEABBBP4z9KsN6nGRTbVYI_c7VJSPQTBtkgcy\
         27mlmlMoZIIgDll6e3vCYLocInmYWAmS6TlzAC8wEqKK6PBru3jl7A_yl95bQpu6cVPTpK4Mqgkf1CXztLVBSt2Ks\
-        3oZwbuwXPXLWyouBWLVWGNWQexSgSxsj_Qulcy4a-fN")
+        3oZwbuwXPXLWyouBWLVWGNWQexSgSxsj_Qulcy4a-fN"
+        )
     }
 }
