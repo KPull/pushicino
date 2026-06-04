@@ -1,6 +1,6 @@
 use crate::Error;
 use base64::prelude::*;
-use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
+use jsonwebtoken::{Algorithm, EncodingKey, Header, encode};
 use p256::pkcs8::EncodePrivateKey;
 use reqwest::header::HeaderValue;
 use std::ops::Add;
@@ -10,8 +10,10 @@ use url::Url;
 
 /// This is information used for the creation of VAPID authentication tokens within push messages.
 /// A Vapid object is created and provided to a Push Service.
+#[derive(Debug)]
 pub struct Vapid {
     private_key: p256::ecdsa::SigningKey,
+
     identification: ServerIdentification,
 
     /// The maximum lifetime of a VAPID token. The maximum allowed lifetime is 24 hours. The
@@ -47,10 +49,14 @@ impl Vapid {
         }
     }
 
+    pub(crate) fn public_key(&self) -> &p256::ecdsa::VerifyingKey {
+        self.private_key.verifying_key()
+    }
+
     /// Obtain the authorization header that should be used for VAPID authenticated HTTP requests.
     /// The value returned may be placed directly into the `Authorization` header of HTTP requests
     /// to authenticate the server sending a Push message.
-    pub fn authorization_header(&self) -> Result<VapidAuthorizationHeader, Error> {
+    pub(crate) fn authorization_header(&self) -> Result<VapidAuthorizationHeader, Error> {
         let mut lock = self
             .cached_token
             .lock()
@@ -79,9 +85,7 @@ impl Vapid {
                 *lock = Some(header.clone());
                 Ok(header)
             }
-            Some(cached) => {
-                Ok(cached.clone())
-            }
+            Some(cached) => Ok(cached.clone()),
         }
     }
 
@@ -125,7 +129,7 @@ impl Vapid {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ServerIdentification {
     audience: Url,
     subject: Option<Url>,

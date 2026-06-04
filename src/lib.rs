@@ -6,10 +6,14 @@ mod vapid;
 /// by taking an arbitrary piece of data and encrypting it using the given key. The implementation
 /// only supports RFC8188 using a single record
 mod rfc8188;
+
+use base64::Engine;
+use base64::prelude::BASE64_URL_SAFE_NO_PAD;
+use p256::ecdsa::VerifyingKey;
 use reqwest::header::HeaderMap;
 
 pub use subscription::{AuthenticationSecret, Subscription};
-pub use vapid::Vapid;
+pub use vapid::{ServerIdentification, Vapid};
 
 /// The main component and entrypoint for sending web push
 /// messages. Each Push Service should be configured with a private key that uniquely
@@ -18,6 +22,7 @@ pub use vapid::Vapid;
 /// Additionally, it should be configured with some metadata that is used
 /// to generate VAPID authentication token such as your contact e-mail address. This metadata will
 /// be translated into JWT claims when generating tokens for your push messages.
+#[derive(Debug)]
 pub struct PushService {
     vapid: Vapid,
 }
@@ -25,6 +30,17 @@ pub struct PushService {
 impl PushService {
     pub fn with_vapid(vapid: Vapid) -> Self {
         Self { vapid }
+    }
+
+    pub fn vapid_public_key(&self) -> &VerifyingKey {
+        self.vapid.public_key()
+    }
+
+    /// Returns the public key for VAPID that should be supplied to the browser's `subscribe(..)`
+    /// call.
+    pub fn vapid_public_key_base64(&self) -> String {
+        let public_key_bytes = self.vapid_public_key().to_sec1_bytes();
+        BASE64_URL_SAFE_NO_PAD.encode(public_key_bytes)
     }
 
     pub async fn send<'a, 'b, 'c>(
