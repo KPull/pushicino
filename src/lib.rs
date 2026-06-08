@@ -10,7 +10,7 @@ mod rfc8188;
 use base64::Engine;
 use base64::prelude::BASE64_URL_SAFE_NO_PAD;
 use p256::ecdsa::VerifyingKey;
-use reqwest::header::HeaderMap;
+use reqwest::header::{HeaderMap, HeaderValue};
 
 pub use subscription::{AuthenticationSecret, Subscription};
 pub use vapid::{ServerIdentification, Vapid};
@@ -59,10 +59,13 @@ impl PushService {
         headers.append("Authorization", header.into());
         let request = request.headers(headers);
 
-        request
+        let response = request
             .send()
             .await
             .map_err(|e| Error::HttpRequestFailed(e))?;
+
+        let response_body = response.text().await.unwrap_or_default();
+        println!("RESPONSE_BODY: {}", response_body);
 
         Ok(())
     }
@@ -103,6 +106,7 @@ mod tests {
         ));
         let subscription = Subscription::new(
             Url::parse("https://www.postb.in/1780346657084-9427918170113").unwrap(),
+            None,
                 AuthenticationSecret(BASE64_URL_SAFE_NO_PAD.decode("BTBZMqHH6r4Tts7J_aSIgg").unwrap()
                     .try_into().unwrap()),
             PublicKey::from_sec1_bytes(&BASE64_URL_SAFE_NO_PAD.decode("BP4z9KsN6nGRTbVYI_c7VJSPQTBtkgcy27mlmlMoZIIgDll6e3vCYLocInmYWAmS6TlzAC8wEqKK6PBru3jl7A8").unwrap()).unwrap(),

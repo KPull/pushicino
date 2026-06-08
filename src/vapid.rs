@@ -98,7 +98,8 @@ impl Vapid {
         let exp = now.add(self.token_lifetime);
 
         let claims = Claims {
-            aud: self.identification.audience.clone().to_string(),
+            // TODO: Create a token with an 'aud' specifically for each push capability endpoint
+            aud: self.identification.audience.origin().unicode_serialization(),
             sub: self
                 .identification
                 .subject
@@ -180,7 +181,7 @@ impl VapidAuthorizationHeader {
 
 impl From<VapidAuthorizationHeader> for HeaderValue {
     fn from(value: VapidAuthorizationHeader) -> Self {
-        HeaderValue::from_str(&format!("vapid t={},k={}", value.token, value.key))
-            .expect("Failed to create HeaderValue")
+        let header_value = format!("vapid t={},k={}", value.token, value.key);
+        HeaderValue::from_str(&header_value).expect("Failed to create HeaderValue")
     }
 }

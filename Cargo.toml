@@ -14,7 +14,7 @@ p256 = { version = ">=0.13.2", features = ["ecdh", "ecdsa", "serde"] }
 url = { version = ">=2.5.8", features = ["serde"] }
 reqwest = "0.13.3"
 jsonwebtoken = { version = ">=10.4.0", features = ["rust_crypto"] }
-serde = ">=1.0.228"
+serde = { version = ">=1.0.228" }
 
 [dev-dependencies]
 tokio = { version = "1.52.3", features = ["rt", "macros", "test-util"] }
