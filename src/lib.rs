@@ -10,7 +10,7 @@ mod rfc8188;
 use base64::Engine;
 use base64::prelude::BASE64_URL_SAFE_NO_PAD;
 use p256::ecdsa::VerifyingKey;
-use reqwest::header::{HeaderMap, HeaderValue};
+use reqwest::header::HeaderMap;
 
 pub use subscription::{AuthenticationSecret, Subscription};
 pub use vapid::{ServerIdentification, Vapid};
@@ -54,7 +54,9 @@ impl PushService {
             .prepare_request(&client, content)
             .map_err(|e| Error::FailedToPrepareRequest(e))?;
 
-        let header = self.vapid.authorization_header()?;
+        let header = self
+            .vapid
+            .authorization_header(&subscription.endpoint.origin())?;
         let mut headers = HeaderMap::new();
         headers.append("Authorization", header.into());
         let request = request.headers(headers);
@@ -100,8 +102,8 @@ mod tests {
     async fn test_send() {
         let service = PushService::with_vapid(Vapid::new(
             SigningKey::from_pkcs8_pem(&read_to_string("vapid_test_2.pem").unwrap()).unwrap(),
-            vapid::ServerIdentification::with_audience(
-                url::Url::parse("https://example.com").unwrap(),
+            vapid::ServerIdentification::with_subject(
+                url::Url::parse("mailto:test@test.test").unwrap(),
             ),
         ));
         let subscription = Subscription::new(
