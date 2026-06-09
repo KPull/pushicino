@@ -1,16 +1,16 @@
 use crate::rfc8188;
 use crate::rfc8188::{EncodingKey, EncryptedPayload, InputKeyingMaterial, Keyid};
-use aes_gcm::aead::Buffer;
 use aes_gcm::KeyInit;
-use base64::prelude::BASE64_URL_SAFE_NO_PAD;
+use aes_gcm::aead::Buffer;
 use base64::Engine;
+use base64::prelude::BASE64_URL_SAFE_NO_PAD;
 use elliptic_curve::rand_core::{OsRng, RngCore};
 use elliptic_curve::sec1::ToEncodedPoint;
 use hkdf::InvalidLength;
 use p256::ecdh::EphemeralSecret;
 use reqwest::{Client, RequestBuilder};
-use serde::de::Error as DeError;
 use serde::Deserialize;
+use serde::de::Error as DeError;
 use sha2::Sha256;
 use url::Url;
 
@@ -23,7 +23,11 @@ pub struct Keys {
 }
 
 /// A Subscription suitable for sending push messages. This object contains all the secrets
-/// necessary for encoding a push message payload.
+/// necessary for encoding a push message payload. This struct implements the [`Deserialize`] trait
+/// such that you can use it as a parameter directly within an endpoint function for Axum (or
+/// other web frameworks). The struct matches the object returned by the user agent's
+/// [`PushManager.subscribe()` method](https://developer.mozilla.org/en-US/docs/Web/API/PushManager/subscribe). Use
+/// the `.toJson()` method, on the user-agent, to obtain the JSON representation of the subscription.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct Subscription {
     pub endpoint: Url,
@@ -74,6 +78,7 @@ impl EncodingKey for Subscription {
 }
 
 impl Subscription {
+    /// Create a new subscription to a Push Service.
     pub fn new(
         endpoint: Url,
         expiration_time: Option<u64>,
@@ -93,14 +98,13 @@ impl Subscription {
     pub(crate) fn prepare_request<'a, 'b>(
         &'a self,
         client: &Client,
+        ttl: u64,
         message: impl Into<&'b [u8]>,
     ) -> Result<RequestBuilder, Error> {
         let encoded_payload = self.encode_message(message)?;
         Ok(client
-            // .post("https://www.postb.in/1780953270638-3459082592744")
             .post(self.endpoint.as_str())
-            // TODO: Use a TTL that is provided by the caller
-            .header("TTL", "60")
+            .header("TTL", ttl.to_string())
             .header("Content-Type", "application/octet-stream")
             .header("Content-Encoding", "aes128gcm")
             .body::<Vec<u8>>((&encoded_payload).into()))
@@ -147,7 +151,9 @@ where
     let bytes = BASE64_URL_SAFE_NO_PAD
         .decode(s)
         .map_err(|e| D::Error::custom(format!("Failed to decode base64: {}", e)))?;
-    bytes.try_into().map_err(|_| D::Error::custom("Invalid authentication secret length"))
+    bytes
+        .try_into()
+        .map_err(|_| D::Error::custom("Invalid authentication secret length"))
 }
 
 fn decode_p256dh<'de, D>(deserializer: D) -> Result<p256::PublicKey, D::Error>
@@ -161,7 +167,7 @@ where
             .map_err(|e| D::Error::custom(format!("Failed to decode base64: {}", e)))?
             .as_slice(),
     )
-        .map_err(|e| D::Error::custom(format!("Failed to parse p256dh: {}", e)))?)
+    .map_err(|e| D::Error::custom(format!("Failed to parse p256dh: {}", e)))?)
 }
 
 #[cfg(test)]

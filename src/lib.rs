@@ -25,11 +25,12 @@ pub use vapid::{ServerIdentification, Vapid};
 #[derive(Debug)]
 pub struct PushService {
     vapid: Vapid,
+    default_ttl: u64,
 }
 
 impl PushService {
-    pub fn with_vapid(vapid: Vapid) -> Self {
-        Self { vapid }
+    pub fn with_vapid(vapid: Vapid, default_ttl: u64) -> Self {
+        Self { vapid, default_ttl }
     }
 
     pub fn vapid_public_key(&self) -> &VerifyingKey {
@@ -37,7 +38,7 @@ impl PushService {
     }
 
     /// Returns the public key for VAPID that should be supplied to the browser's `subscribe(..)`
-    /// call.
+    /// call when the end-user wants to register a new subscription
     pub fn vapid_public_key_base64(&self) -> String {
         let public_key_bytes = self.vapid_public_key().to_sec1_bytes();
         BASE64_URL_SAFE_NO_PAD.encode(public_key_bytes)
@@ -48,10 +49,20 @@ impl PushService {
         subscription: &'b Subscription,
         content: impl Into<&'c [u8]>,
     ) -> Result<(), Error> {
+        self.send_with_ttl(subscription, self.default_ttl, content)
+            .await
+    }
+
+    pub async fn send_with_ttl<'a, 'b, 'c>(
+        &'a self,
+        subscription: &'b Subscription,
+        ttl: u64,
+        content: impl Into<&'c [u8]>,
+    ) -> Result<(), Error> {
         let client = reqwest::Client::new();
 
         let request = subscription
-            .prepare_request(&client, content)
+            .prepare_request(&client, ttl, content)
             .map_err(|e| Error::FailedToPrepareRequest(e))?;
 
         let header = self
@@ -100,12 +111,15 @@ mod tests {
 
     #[tokio::test]
     async fn test_send() {
-        let service = PushService::with_vapid(Vapid::new(
-            SigningKey::from_pkcs8_pem(&read_to_string("vapid_test_2.pem").unwrap()).unwrap(),
-            vapid::ServerIdentification::with_subject(
-                url::Url::parse("mailto:test@test.test").unwrap(),
+        let service = PushService::with_vapid(
+            Vapid::new(
+                SigningKey::from_pkcs8_pem(&read_to_string("vapid_test_2.pem").unwrap()).unwrap(),
+                vapid::ServerIdentification::with_subject(
+                    url::Url::parse("mailto:test@test.test").unwrap(),
+                ),
             ),
-        ));
+            60,
+        );
         let subscription = Subscription::new(
             Url::parse("https://www.postb.in/1780346657084-9427918170113").unwrap(),
             None,
