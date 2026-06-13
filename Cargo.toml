@@ -1,21 +1,28 @@
 [package]
 name = "pushicino"
-version = "0.1.0"
+description = "Provides the tools necessary for your application to send Web Push messages in accordance with RFC 8030."
+documentation = "https://docs.rs/pushicino"
+readme = "README.md"
+repository = "https://github.com/KPull/pushicino"
+license = "MIT"
+license-file = "LICENSE.txt"
+keywords = ["web push", "push notifications", "rfc8030"]
+categories = ["network-programming", "web-programming"]
+version = "1.0.0"
 edition = "2024"
 
 [dependencies]
-base64 = "0.22.1"
-elliptic-curve = { version = "0.13.8", features = ["ecdh"] }
-ecdsa = "0.16.9"
-hkdf = "0.12.4"
-sha2 = "0.10.9"
-aes-gcm = "0.10.3"
+base64 = ">=0.22.1"
+elliptic-curve = { version = ">=0.13.8", features = ["ecdh"] }
+hkdf = ">=0.12.4"
+sha2 = ">=0.10.9"
+aes-gcm = ">=0.10.3"
 p256 = { version = ">=0.13.2", features = ["ecdh", "ecdsa", "serde"] }
 url = { version = ">=2.5.8", features = ["serde"] }
-reqwest = "0.13.3"
+reqwest = ">=0.13.3"
 jsonwebtoken = { version = ">=10.4.0", features = ["rust_crypto"] }
 serde = { version = ">=1.0.228" }
 
 [dev-dependencies]
-tokio = { version = "1.52.3", features = ["rt", "macros", "test-util"] }
-base64 = "0.22.1"
+tokio = { version = ">=1.52.3", features = ["rt", "macros", "test-util"] }
+axum = { version = ">=0.8.9" }

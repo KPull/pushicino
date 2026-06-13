@@ -23,12 +23,12 @@ pub(crate) fn encode(key: &impl EncodingKey, message: &[u8]) -> Result<Encrypted
     const CEK_INFO: &[u8] = b"Content-Encoding: aes128gcm\0";
     let mut cek = [0u8; 16];
     hkdf.expand(CEK_INFO, &mut cek)
-        .map_err(|e| Error::InvalidCekLength(e))?;
+        .map_err(Error::InvalidCekLength)?;
 
     const NONCE_INFO: &[u8] = b"Content-Encoding: nonce\0";
     let mut nonce = [0u8; 12];
     hkdf.expand(NONCE_INFO, &mut nonce)
-        .map_err(|e| Error::InvalidNonceLength(e))?;
+        .map_err(Error::InvalidNonceLength)?;
 
     const FINAL_RECORD_DELIMITER: u8 = 0x02;
     let mut delimited_message = Vec::with_capacity(message.len() + 1);
@@ -40,10 +40,10 @@ pub(crate) fn encode(key: &impl EncodingKey, message: &[u8]) -> Result<Encrypted
 
     let cek = Key::<Aes128Gcm>::from_slice(&cek);
     let nonce = Nonce::<Aes128Gcm>::from_slice(&nonce);
-    let mut cipher = Aes128Gcm::new(&cek);
+    let mut cipher = Aes128Gcm::new(cek);
     let ciphertext = cipher
-        .encrypt(&nonce, delimited_message.as_slice())
-        .map_err(|e| Error::FailedToInitializeCipher(e))?;
+        .encrypt(nonce, delimited_message.as_slice())
+        .map_err(Error::FailedToInitializeCipher)?;
 
     let header = ContentCodingHeader {
         salt,
@@ -174,9 +174,9 @@ pub enum Error {
 
 #[cfg(test)]
 mod tests {
-    use crate::rfc8188::{encode, EncodingKey, InputKeyingMaterial, Keyid};
-    use base64::prelude::BASE64_URL_SAFE_NO_PAD;
+    use crate::rfc8188::{EncodingKey, InputKeyingMaterial, Keyid, encode};
     use base64::Engine;
+    use base64::prelude::BASE64_URL_SAFE_NO_PAD;
 
     struct TestKey;
 
