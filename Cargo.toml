@@ -5,7 +5,6 @@ documentation = "https://docs.rs/pushicino"
 readme = "README.md"
 repository = "https://github.com/KPull/pushicino"
 license = "MIT"
-license-file = "LICENSE.txt"
 keywords = ["web push", "push notifications", "rfc8030"]
 categories = ["network-programming", "web-programming"]
 version = "1.0.0"
